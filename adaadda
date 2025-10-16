@@ -1,0 +1,37 @@
+#include <stdio.h>
+
+#define MIN 10    // Minimální povolená hodnota
+#define MAX 100   // Maximální povolená hodnota
+
+int main() {
+    int cislo;
+    char term;
+    int a = 0; // Proměnná pro čištění bufferu
+
+    while (1) {
+        printf("Zadej cele cislo v intervalu <%d; %d>: ", MIN, MAX);
+
+        if (scanf("%d%c", &cislo, &term) != 2 || term != '\n') {
+            printf("Nemuzes zadat pismeno nebo neplatny vstup. Zkus to znovu.\n");
+
+            // Vyčištění vstupního bufferu
+            while ((term = getchar()) != '\n') {
+                a++;
+            }
+
+            continue; // znovu požádat o vstup
+        }
+
+        // Kontrola, zda číslo spadá do intervalu
+        if (cislo < MIN || cislo > MAX) {
+            printf("Cislo neni v povolenem intervalu <%d; %d>. Zkus to znovu.\n", MIN, MAX);
+            continue;
+        }
+
+        // Pokud všechno v pořádku
+        printf("Zadal jsi platne cislo: %d\n", cislo);
+        break;
+    }
+
+    return 0;
+}
