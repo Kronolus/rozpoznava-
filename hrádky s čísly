@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define MIN 10
+#define MAX 100
+#define POKUSY 9
+
+int main(void) {
+    int tajne, tip;
+    int i;
+
+    srand((unsigned int) time(NULL));
+    tajne = MIN + rand() % (MAX - MIN + 1);
+
+    printf("Hadaci hra - uhodni cislo mezi %d a %d.\n", MIN, MAX);
+    printf("Mas %d pokusu.\n\n", POKUSY);
+
+    for (i = 1; i <= POKUSY; ++i) {
+        printf("Pokus %d/%d: Zadej cele cislo: ", i, POKUSY);
+
+        if (scanf("%d", &tip) != 1) {
+            /* pokud uzivatel nezadal cele cislo, presuneme se na dalsi pokus */
+            printf("Neplatny vstup. Zadavej cisla.\n");
+            /* vycistit zbyvajici necislicovy vstup */
+            int ch;
+            while ((ch = getchar()) != '\n' && ch != EOF) { }
+            continue;
+        }
+
+        if (tip < MIN || tip > MAX) {
+            printf("Cislo musi byt v intervalu %d..%d. Tento pokus se zapocitava.\n", MIN, MAX);
+        }
+
+        if (tip == tajne) {
+            printf("Gratulace! Uhodl jsi cislo %d na %d. pokus.\n", tajne, i);
+            return 0;
+        } else if (tip < tajne) {
+            printf("Tajne cislo je vetsi.\n");
+        } else {
+            printf("Tajne cislo je mensi.\n");
+        }
+    }
+
+    printf("\nKonec hry. Tajne cislo bylo: %d\n", tajne);
+    return 0;
+}
