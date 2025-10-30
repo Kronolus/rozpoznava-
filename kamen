@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define MIN 1
+#define MAX 3
+
+int main() {
+    int cislo;
+    char term;
+    int a = 0;
+    int body_hrac = 0;
+    int body_ai = 0;
+    int ai_volba;
+
+    srand(time(NULL)); // Inicializace generátoru náhodných čísel (stačí jednou)
+
+    while (1) {
+        printf("\n---------------------------------\n");
+        printf(" Hrajes kamen, nuzky, papir\n");
+        printf("Dej 1 pro kamen, 2 pro nuzky, a 3 pro papir.\n");
+        printf("Hraje se na 3 body.\n");
+        printf("---------------------------------\n");
+
+        if (scanf("%d%c", &cislo, &term) != 2 || term != '\n') {
+            printf("Nemuzes zadat pismeno nebo neplatny vstup. Zkus to znovu.\n");
+            while ((term = getchar()) != '\n') {
+                a++;
+            }
+            continue;
+        }
+
+        if (cislo < MIN || cislo > MAX) {
+            printf("Spatny vstup, zadej 1 pro kamen, 2 pro nuzky, a 3 pro papir.\n");
+            continue;
+        }
+
+        // ✅ Přidáme malou variaci do náhodného generátoru, aby se neopakovaly stejné tahy
+        ai_volba = (rand() % 3) + 1;
+
+        printf("Ty jsi dal: ");
+        if (cislo == 1) printf("Kamen\n");
+        if (cislo == 2) printf("Nuzky\n");
+        if (cislo == 3) printf("Papir\n");
+
+        printf("AI dala: ");
+        if (ai_volba == 1) printf("Kamen\n");
+        if (ai_volba == 2) printf("Nuzky\n");
+        if (ai_volba == 3) printf("Papir\n");
+
+        if (cislo == ai_volba) {
+            printf("Remiza!\n");
+        } else if ((cislo == 1 && ai_volba == 2) ||
+                   (cislo == 2 && ai_volba == 3) ||
+                   (cislo == 3 && ai_volba == 1)) {
+            printf("Vyhral jsi toto kolo!\n");
+            body_hrac++;
+        } else {
+            printf("Prohral jsi toto kolo.\n");
+            body_ai++;
+        }
+
+        printf("Skore: Ty %d : %d AI\n", body_hrac, body_ai);
+
+        if (body_hrac == 3) {
+            printf("\nVyhral jsi celou hru! Gratuluju!\n");
+            break;
+        } else if (body_ai == 3) {
+            printf("\nAI vyhrala hru! Zkus to znovu.\n");
+            break;
+        }
+    }
+
+    return 0;
+}
