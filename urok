@@ -1,0 +1,40 @@
+#include <stdio.h>
+
+// Funkce pro výpočet zůstatku
+double vypocetZustatku(double vklad, double urok) {
+    return vklad * (1 + urok / 100.0);
+}
+
+// Bezpečné načtení desetinného čísla
+double nactiDouble(const char *text) {
+    double hodnota;
+    char term;
+
+    while (1) {
+        printf("%s", text);
+
+        if (scanf("%lf%c", &hodnota, &term) != 2 || term != '\n') {
+            printf("Neplatny vstup! Zadej cislo.\n");
+            while ((term = getchar()) != '\n'); // vyčištění bufferu
+            continue;
+        }
+
+        if (hodnota < 0) {
+            printf("Hodnota nesmi byt zaporna.\n");
+            continue;
+        }
+
+        return hodnota;
+    }
+}
+
+int main() {
+    double vklad = nactiDouble("Zadejte vyši vkladu (Kcs): ");
+    double urok  = nactiDouble("Zadejte rocni urokovou miru (v %): ");
+
+    double zustatek = vypocetZustatku(vklad, urok);
+
+    printf("\nNa konci roku bude zustatek: %.2lf Kcs\n", zustatek);
+
+    return 0;
+}
