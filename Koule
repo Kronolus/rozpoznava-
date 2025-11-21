@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <math.h>
+
+#define MIN_R 0.00001  // Minimální povolený poloměr
+
+// --- Funkce pro výpočty ---
+double objemKoule(double r) {
+    return (4.0 / 3.0) * M_PI * pow(r, 3);
+}
+
+double povrchKoule(double r) {
+    return 4.0 * M_PI * pow(r, 2);
+}
+
+double obvodKruhu(double r) {
+    return 2.0 * M_PI * r;
+}
+
+double obsahKruhu(double r) {
+    return M_PI * pow(r, 2);
+}
+
+// --- Bezpečné načtení poloměru ---
+double nactiPolomer() {
+    double r;
+    char term;
+    int a = 0; // Pro čištění bufferu
+
+    while (1) {
+        printf("Zadej polomer (kladne cislo): ");
+
+        if (scanf("%lf%c", &r, &term) != 2 || term != '\n') {
+            printf("Neplatny vstup, zadej cislo.\n");
+            while ((term = getchar()) != '\n') { a++; } 
+            continue;
+        }
+
+        if (r <= MIN_R) {
+            printf("Polomer musi byt kladne cislo.\n");
+            continue;
+        }
+
+        return r;
+    }
+}
+
+// --- Bezpečné načtení volby ---
+int nactiVolbu() {
+    int volba;
+    char term;
+    int a = 0;
+
+    while (1) {
+        printf("\nZadej svou volbu: ");
+
+        if (scanf("%d%c", &volba, &term) != 2 || term != '\n') {
+            printf("Neplatny vstup! Zadej cele cislo.\n");
+            while ((term = getchar()) != '\n') { a++; }
+            continue;
+        }
+
+        if (volba < 1 || volba > 5) {
+            printf("Neplatna volba. Musi byt 1–5.\n");
+            continue;
+        }
+
+        return volba;
+    }
+}
+
+int main() {
+
+    while (1) {
+        printf("\n--- MENU ---\n");
+        printf("1) Objem koule\n");
+        printf("2) Povrch koule\n");
+        printf("3) Obvod kruhu\n");
+        printf("4) Obsah kruhu\n");
+        printf("5) Konec\n");
+
+        int volba = nactiVolbu();
+
+        if (volba == 5) {
+            printf("Konec programu.\n");
+            break;
+        }
+
+        double r = nactiPolomer();
+
+        switch (volba) {
+            case 1:
+                printf("Objem koule o polomeru %.2lf je: %.4lf\n", r, objemKoule(r));
+                break;
+
+            case 2:
+                printf("Povrch koule o polomeru %.2lf je: %.4lf\n", r, povrchKoule(r));
+                break;
+
+            case 3:
+                printf("Obvod kruhu o polomeru %.2lf je: %.4lf\n", r, obvodKruhu(r));
+                break;
+
+            case 4:
+                printf("Obsah kruhu o polomeru %.2lf je: %.4lf\n", r, obsahKruhu(r));
+                break;
+        }
+    }
+
+    return 0;
+}
