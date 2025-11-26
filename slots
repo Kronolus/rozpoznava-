@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <ctype.h>
+
+// Funkce pro bezpečné načtení desetinného čísla
+double nactiDouble(const char *text) {
+    double hodnota;
+    char term;
+
+    while (1) {
+        printf("%s", text);
+
+        if (scanf("%lf%c", &hodnota, &term) != 2 || term != '\n') {
+            printf("Neplatny vstup! Zadej cislo.\n");
+            while ((term = getchar()) != '\n');
+            continue;
+        }
+
+        if (hodnota < 0) {
+            printf("Hodnota nesmi byt zaporna.\n");
+            continue;
+        }
+
+        return hodnota;
+    }
+}
+
+// Funkce pro animaci válců
+void animaceSlotu() {
+    const char *symbols = "@#$%&*";
+    int len = 6;
+
+    for (int i = 0; i < 5; i++) {
+        printf("\r[ %c | %c | %c ]",
+               symbols[rand() % len],
+               symbols[rand() % len],
+               symbols[rand() % len]
+        );
+        fflush(stdout);
+        _sleep(300); // 0.3 sekundy
+    }
+    printf("\n");
+}
+
+// Hlavní část programu
+int main() {
+    srand((unsigned)time(NULL));
+
+    double kredit = nactiDouble("Zadejte pocatecni kredit (Kcs): ");
+    char volba;
+
+    do {
+        if (kredit <= 0) {
+            printf("Nemas zadny kredit. Konec hry.\n");
+            break;
+        }
+
+        double sazka = nactiDouble("Zadejte vysku sazky: ");
+        if (sazka > kredit) {
+            printf("Nemas dostatek kreditu!\n");
+            continue;
+        }
+
+        kredit -= sazka;
+
+        printf("\nRozjizdim slot machine...\n");
+        animaceSlotu();
+
+        const char *symbols = "@#$%&*";
+        int len = 6;
+
+        char a = symbols[rand() % len];
+        char b = symbols[rand() % len];
+        char c = symbols[rand() % len];
+
+        printf("Vysledek: [ %c | %c | %c ]\n", a, b, c);
+
+        if (a == b && b == c) {
+            double vyhra = sazka * 10;
+            kredit += vyhra;
+            printf("!!! VYHRA !!! Ziskavas %.2lf Kcs\n", vyhra);
+        } else {
+            printf("Bohuzel, zkus to znovu.\n");
+        }
+
+        printf("Aktualni kredit: %.2lf Kcs\n", kredit);
+
+        printf("Chces hrat dal? (A/N): ");
+        scanf(" %c", &volba);
+        volba = toupper(volba);
+
+    } while (volba == 'A');
+
+    printf("Diky za hru! Konec.\n");
+    return 0;
+}
