@@ -1,0 +1,72 @@
+#include <stdio.h>
+
+// Funkce pro soucet vsech cisel v poli
+int spocitejSoucet(int pole[], int pocet) {
+    int soucet = 0;
+    int i;
+
+    for (i = 0; i < pocet; i++) {
+        soucet = soucet + pole[i];
+    }
+
+    return soucet;
+}
+
+// Funkce pro prumer cisel v poli
+double spocitejPrumer(int pole[], int pocet) {
+    int soucet = 0;
+    int i;
+
+    for (i = 0; i < pocet; i++) {
+        soucet = soucet + pole[i];
+    }
+
+    if (pocet == 0) {
+        return 0;   // kdyby nebylo nic zadano
+    }
+
+    return (double)soucet / pocet;
+}
+
+int main() {
+    int ceny[1000];
+    int pocet = 0;
+    int vstup;
+    int ch;
+
+    printf("Zadej ceny nakupu (ukoncuj nulou):\n");
+
+    while (1) {
+        printf("Cena: ");
+
+        // Kontrola vstupu – jestli je to opravdu cele cislo
+        if (scanf("%d", &vstup) != 1) {
+
+            printf("Neplatny vstup. Zadavej jen cela cisla.\n");
+
+            // vycisteni vstupu od neplatnych znaku
+            while ((ch = getchar()) != '\n' && ch != EOF) {
+                /* jen cistime buffer */
+            }
+
+            continue;   // zkusíme zadat znovu
+        }
+
+        if (vstup == 0) {
+            break;
+        }
+
+        ceny[pocet] = vstup;
+        pocet = pocet + 1;
+    }
+
+    // Vypocet
+    int soucet = spocitejSoucet(ceny, pocet);
+    double prumer = spocitejPrumer(ceny, pocet);
+
+    // Vysledky
+    printf("\nCelkovy soucet: %d\n", soucet);
+    printf("Prumerna cena nakupu: %.2f\n", prumer);
+
+    return 0;
+}
