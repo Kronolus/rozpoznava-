@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>  // Pro abs()
+
+// Funkce pro výpočet mocniny pro kladné n
+double mocnina_kladna(double x, int n) {
+    double x2 = x;                                                                                                                                                                                                                                                                                                                                                                                     
+    int a = 1;
+    while (a < n) {
+        x2 = x2 * x;
+        a += 1;
+    }
+    return x2;
+}
+
+// Funkce pro výpočet mocniny pro záporné n
+double mocnina_zaporna(double x, int n) {
+    double x2 = x;
+    int a = 1;
+    n = abs(n);  // Záporný exponent převedeme na kladný
+    while (a < n) {
+        x2 = x2 * x;
+        a += 1;
+    }
+    return 1 / x2;
+}
+
+// Funkce pro výpočet pro případ n == 0
+double mocnina_0(double x) {
+    if (x == 0) {
+        printf("Nemozna operace \n");
+        return -1;  // Chybová hodnota pro nemožnou operaci
+    }
+    return 1;  // x^0 je definováno jako 1
+}
+
+// Funkce pro načítání a validaci vstupu (x)
+double zadej_x() {
+    double x;
+    while (1) {
+        printf("Zadej x (pro ukonceni zadat 'a'): ");
+        if (scanf("%lf", &x) != 1) {
+            // Pokud uživatel nezadal platné číslo, kontrolujeme, jestli zadal 'a'
+            char ch = getchar();  // Přečte znak pro ukončení
+            if (ch == 'a' || ch == 'A') {
+                return -1;  // Ukončíme program, vrátíme speciální hodnotu
+            }
+            printf("Neplatny vstup. Zadavej cisla nebo 'a' pro ukonceni.\n");
+            // Vyčistit zbylý nečíselný vstup
+            while ((ch = getchar()) != '\n' && ch != EOF) { }
+            continue;
+        }
+        return x;
+    }
+}
+
+// Funkce pro načítání a validaci vstupu (n)
+int zadej_n() {
+    int n;
+    while (1) {
+        printf("Zadej n (pro ukonceni zadat 'a'): ");
+        if (scanf("%d", &n) != 1) {
+            // Pokud uživatel nezadal platné číslo, kontrolujeme, jestli zadal 'a'
+            char ch = getchar();  // Přečte znak pro ukončení
+            if (ch == 'a' || ch == 'A') {
+                return -1;  // Ukončíme program, vrátíme speciální hodnotu
+            }
+            printf("Neplatny vstup. Zadavej cisla nebo 'a' pro ukonceni.\n");
+            // Vyčistit zbylý nečíselný vstup
+            while ((ch = getchar()) != '\n' && ch != EOF) { }
+            continue;
+        }
+        return n;
+    }
+}
+
+// Hlavní funkce
+int main(void) {
+    double x;
+    int n;
+
+    while (1) {
+        // Načítání hodnot x a n s validací vstupu
+        x = zadej_x();
+        if (x == -1) {
+            printf("Program konci.\n");
+            break;  // Ukončí nekonečný cyklus
+        }
+
+        n = zadej_n();
+        if (n == -1) {
+            printf("Program konci.\n");
+            break;  // Ukončí nekonečný cyklus
+        }
+
+        if (n > 0) {
+            // Kladná mocnina
+            double vysledek = mocnina_kladna(x, n);
+            printf("Vysledek: %lf\n", vysledek);
+        }
+        else if (n < 0) {
+            // Záporná mocnina
+            double vysledek = mocnina_zaporna(x, n);
+            printf("Vysledek: %lf\n", vysledek);
+        }
+        else if (x != 0 && n == 0) {
+            // x^0 je 1
+            printf("Vysledek je 1 \n");
+        }
+        else {
+            // x == 0 && n == 0
+            double vysledek = mocnina_0(x);
+            if (vysledek != -1) {  // Pokud nebyla chybová hodnota
+                printf("Vysledek: %lf\n", vysledek);
+            }
+        }
+    }
+
+    return 0;
+}
