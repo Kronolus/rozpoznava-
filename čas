@@ -1,0 +1,55 @@
+#include <stdio.h>
+
+// Funkce pro načítání a validaci vstupu (sekundy)
+int zadej_sekundy() {
+    int s;
+    while (1) {
+        printf("Zadej pocet sekund (pro ukonceni zadat 'a'): ");
+        if (scanf("%d", &s) != 1) {
+            char ch = getchar();
+            if (ch == 'a' || ch == 'A') {
+                return -1; // ukončení programu
+            }
+            printf("Neplatny vstup. Zadavej cela cisla nebo 'a' pro ukonceni.\n");
+
+            // vyčištění zbytku vstupu
+            while ((ch = getchar()) != '\n' && ch != EOF) { }
+            continue;
+        }
+
+        if (s < 0) {
+            printf("Zadej kladne cislo sekund.\n");
+            continue;
+        }
+
+        return s;
+    }
+}
+
+// Funkce pro převod sekund na h:m:s
+void preved_cas(int s, int *h, int *m, int *sec) {
+    *h = s / 3600;
+    s %= 3600;
+    *m = s / 60;
+    *sec = s % 60;
+}
+
+// Hlavní funkce
+int main(void) {
+    int s;
+    int h, m, sec;
+
+    while (1) {
+        s = zadej_sekundy();
+        if (s == -1) {
+            printf("Program konci.\n");
+            break;
+        }
+
+        preved_cas(s, &h, &m, &sec);
+
+        printf("Vysledek: %d hodin, %d minut, %d sekund\n", h, m, sec);
+    }
+
+    return 0;
+}
