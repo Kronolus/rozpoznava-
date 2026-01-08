@@ -1,0 +1,78 @@
+#include <stdio.h>
+
+// Definice minimalniho a maximalniho roku
+#define MIN_ROK 1582
+#define MAX_ROK 2100
+
+// Funkce pro validaci roku
+int je_validni_rok(int rok) {
+    return rok >= MIN_ROK && rok <= MAX_ROK;
+}
+
+// Funkce pro validaci mesice
+int je_validni_mesic(int mesic) {
+    return mesic >= 1 && mesic <= 12;
+}
+
+// Funkce pro validaci dne v mesici
+int je_validni_den(int den, int mesic, int rok) {
+    // Pocet dnu v jednotlivych mesicich
+    int dny_v_mesici[] = { 31, (rok % 4 == 0 && (rok % 100 != 0 || rok % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+    // Overime, jestli je den v rozsahu pro daný mesic
+    return den >= 1 && den <= dny_v_mesici[mesic - 1];
+}
+
+// Funkce pro ziskani vstupu
+void ziskat_vstup(int *rok, int *mesic, int *den) {
+    int cislo;
+    char term;
+
+    // Ziskani roku
+    do {
+        printf("Zadej rok (%d - %d): ", MIN_ROK, MAX_ROK);
+        if (scanf("%d%c", &cislo, &term) != 2 || term != '\n' || !je_validni_rok(cislo)) {
+            printf("Neplatny rok. Zkuste to znovu.\n");
+            while ((term = getchar()) != '\n');  // Vyprázdnime buffer
+        } else {
+            *rok = cislo;
+            break;
+        }
+    } while (1);
+
+    // Ziskani mesice
+    do {
+        printf("Zadej mesic (1 - 12): ");
+        if (scanf("%d%c", &cislo, &term) != 2 || term != '\n' || !je_validni_mesic(cislo)) {
+            printf("Neplatny mesic. Zkuste to znovu.\n");
+            while ((term = getchar()) != '\n');  // Vyprázdnime buffer
+        } else {
+            *mesic = cislo;
+            break;
+        }
+    } while (1);
+
+    // Ziskani dne
+    do {
+        printf("Zadej den: ");
+        if (scanf("%d%c", &cislo, &term) != 2 || term != '\n' || !je_validni_den(cislo, *mesic, *rok)) {
+            printf("Neplatny den pro tento mesic a rok. Zkuste to znovu.\n");
+            while ((term = getchar()) != '\n');  // Vyprázdnime buffer
+        } else {
+            *den = cislo;
+            break;
+        }
+    } while (1);
+}
+
+int main() {
+    int rok, mesic, den;
+
+    // Ziskame platny vstup pro datum
+    ziskat_vstup(&rok, &mesic, &den);
+
+    // Vytiskneme zadaný datum
+    printf("Zadany datum: %d-%02d-%02d\n", rok, mesic, den);
+
+    return 0;
+}
