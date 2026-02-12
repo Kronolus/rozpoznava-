@@ -1,0 +1,53 @@
+#include <stdio.h>
+
+#define MIN 1
+#define MAX 100
+
+// Funkce pro kontrolu prvočísla
+int jePrvocislo(int n) {
+    if (n < 2) return 0;
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) return 0;
+    }
+    return 1;
+}
+
+// Funkce pro načtení čísla s kontrolou vstupu
+int nactiCislo(int *cislo) {
+    int stav = scanf("%d", cislo);
+    if (stav != 1) {
+        printf("Neplatny vstup! Zadej celé číslo.\n");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // vyčištění bufferu
+        return 0;
+    }
+    return 1;
+}
+
+// Funkce pro zpracování čísla
+void zpracujCislo(int cislo) {
+    if (cislo < MIN || cislo > MAX) {
+        printf("Číslo %d není v intervalu %d - %d.\n", cislo, MIN, MAX);
+        return;
+    }
+
+    if (jePrvocislo(cislo)) {
+        printf("%d je prvočíslo.\n", cislo);
+    } else {
+        printf("%d není prvočíslo.\n", cislo);
+    }
+}
+
+int main() {
+    int cislo;
+
+    printf("Zadejte celé číslo v intervalu %d - %d: ", MIN, MAX);
+
+    while (!nactiCislo(&cislo)) {
+        // opakovat dokud uživatel nezadá validní číslo
+    }
+
+    zpracujCislo(cislo);
+
+    return 0;
+}
