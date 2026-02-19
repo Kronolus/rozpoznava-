@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+/* ================== SYMBOLICKE KONSTANTY ================== */
+
+/* rocni urokova mira (napr. 0.05 = 5 %) */
+#define UROKOVA_MIRA 0.05
+
+/* dan z uroku 15 % */
+#define DAN 0.15
+
+/* minimalni a maximalni povoleny vklad */
+#define MIN_VKLAD 0.0
+#define MAX_VKLAD 10000000.0
+
+/* rok vypisu - zmenou teto konstanty se program prizpusobi */
+#define ROK 2024
+
+
+/* ================== FUNKCE ================== */
+
+/* Funkce nacte realne cislo v danem intervalu */
+double nactiDoubleInterval(double min, double max) {
+    double cislo;
+
+    while (1) {
+        if (scanf("%lf", &cislo) != 1) {
+            printf("Neplatny vstup. Zadavej cisla.\n");
+
+            /* vycisteni zbytku radku */
+            int ch;
+            while ((ch = getchar()) != '\n' && ch != EOF) { }
+
+            continue;
+        }
+
+        if (cislo < min || cislo > max) {
+            printf("Zadej cislo v intervalu %.2f az %.2f\n", min, max);
+            continue;
+        }
+
+        return cislo;
+    }
+}
+
+/* Funkce zjisti, jestli je rok prestupny */
+int jePrestupny(int rok) {
+    if ((rok % 4 == 0 && rok % 100 != 0) || (rok % 400 == 0))
+        return 1;
+    return 0;
+}
+
+/* Funkce vrati pocet dni v mesici */
+int pocetDniVMesici(int mesic, int rok) {
+    switch (mesic) {
+        case 1: return 31;
+        case 2:
+            if (jePrestupny(rok))
+                return 29;
+            else
+                return 28;
+        case 3: return 31;
+        case 4: return 30;
+        case 5: return 31;
+        case 6: return 30;
+        case 7: return 31;
+        case 8: return 31;
+        case 9: return 30;
+        case 10: return 31;
+        case 11: return 30;
+        case 12: return 31;
+        default: return 30;
+    }
+}
+
+
+/* ================== HLAVNI PROGRAM ================== */
+
+int main() {
+
+    double pocatecniStav;
+    double mesicniVklad;
+    double zustatek;
+
+    double mesicniUrok;
+    double danZUroku;
+
+    double konecnyStav;
+    double rozdil;
+
+    printf("Simulace sporiciho uctu pro rok %d\n", ROK);
+    printf("----------------------------------------\n");
+
+    /* nacteni vstupu */
+    printf("Zadej pocatecni stav uctu: ");
+    pocatecniStav = nactiDoubleInterval(MIN_VKLAD, MAX_VKLAD);
+
+    printf("Zadej pravidelny mesicni vklad: ");
+    mesicniVklad = nactiDoubleInterval(MIN_VKLAD, MAX_VKLAD);
+
+    printf("\nDatum        Stav pred urokem    Urok    Dan    Stav po uroku\n");
+    printf("-----------------------------------------------------------------\n");
+
+    /* na zacatku roku */
+    zustatek = pocatecniStav;
+
+    /* cyklus pres vsechny mesice */
+    for (int mesic = 1; mesic <= 12; mesic++) {
+
+        /* stav na zacatku mesice */
+        double stavNaZacatku = zustatek;
+
+        /* pripocitame mesicni vklad */
+        stavNaZacatku += mesicniVklad;
+
+        /* vypocet mesicniho uroku (rocni mira / 12) */
+        mesicniUrok = stavNaZacatku * (UROKOVA_MIRA / 12.0);
+
+        /* vypocet dane */
+        danZUroku = mesicniUrok * DAN;
+
+        /* bod 6:
+           konecny stav = pocatecni stav + vklad + urok - dan */
+        zustatek = stavNaZacatku + mesicniUrok - danZUroku;
+
+        int den = pocetDniVMesici(mesic, ROK);
+
+        printf("%02d.%02d.%d   %.2f        %.2f   %.2f   %.2f\n",
+               den, mesic, ROK,
+               stavNaZacatku,
+               mesicniUrok,
+               danZUroku,
+               zustatek);
+    }
+
+    /* bod 7 */
+    konecnyStav = zustatek;
+    rozdil = konecnyStav - pocatecniStav;
+
+    printf("\n----------------------------------------\n");
+    printf("Konecny stav uctu k 31.12.%d: %.2f\n", ROK, konecnyStav);
+    printf("Rozdil oproti pocatku roku: %.2f\n", rozdil);
+
+    return 0;
+}
