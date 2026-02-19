@@ -3,8 +3,8 @@
 
 /* ================== SYMBOLICKE KONSTANTY ================== */
 
-/* rocni urokova mira (napr. 0.05 = 5 %) */
-#define UROKOVA_MIRA 0.05
+/* rocni urokova mira (5.61 % podle tabulky) */
+#define UROKOVA_MIRA 0.0561
 
 /* dan z uroku 15 % */
 #define DAN 0.15
@@ -14,7 +14,7 @@
 #define MAX_VKLAD 10000000.0
 
 /* rok vypisu - zmenou teto konstanty se program prizpusobi */
-#define ROK 2024
+#define ROK 2023
 
 
 /* ================== FUNKCE ================== */
@@ -98,8 +98,12 @@ int main() {
     printf("Zadej pravidelny mesicni vklad: ");
     mesicniVklad = nactiDoubleInterval(MIN_VKLAD, MAX_VKLAD);
 
-    printf("\nDatum        Stav pred urokem    Urok    Dan    Stav po uroku\n");
-    printf("-----------------------------------------------------------------\n");
+    printf("\nSporici ucet, rocni urokova mira %.2f %%\n", UROKOVA_MIRA * 100.0);
+    printf("Stav uctu na pocatku roku %d je %.2f Kc.\n\n", ROK, pocatecniStav);
+
+    printf("--------------------------------------------------------------------------\n");
+    printf("datum       na pocatku mesice   vklad     urok     dan z uroku(15%%)   na konci mesice\n");
+    printf("--------------------------------------------------------------------------\n");
 
     /* na zacatku roku */
     zustatek = pocatecniStav;
@@ -107,27 +111,28 @@ int main() {
     /* cyklus pres vsechny mesice */
     for (int mesic = 1; mesic <= 12; mesic++) {
 
-        /* stav na zacatku mesice */
+        /* stav na zacatku mesice (pred vkladem) */
         double stavNaZacatku = zustatek;
 
-        /* pripocitame mesicni vklad */
-        stavNaZacatku += mesicniVklad;
+        /* po pripocitani mesicniho vkladu */
+        double poVkladu = stavNaZacatku + mesicniVklad;
 
         /* vypocet mesicniho uroku (rocni mira / 12) */
-        mesicniUrok = stavNaZacatku * (UROKOVA_MIRA / 12.0);
+        mesicniUrok = poVkladu * (UROKOVA_MIRA / 12.0);
 
         /* vypocet dane */
         danZUroku = mesicniUrok * DAN;
 
-        /* bod 6:
-           konecny stav = pocatecni stav + vklad + urok - dan */
-        zustatek = stavNaZacatku + mesicniUrok - danZUroku;
+        /* konecny stav mesice */
+        zustatek = poVkladu + mesicniUrok - danZUroku;
 
         int den = pocetDniVMesici(mesic, ROK);
 
-        printf("%02d.%02d.%d   %.2f        %.2f   %.2f   %.2f\n",
+        /* Formatovani podobne tabulce: dd.mm.yyyy  zacatek  vklad  urok  dan  konec */
+        printf("%02d.%02d.%d   %12.2f Kc   %8.2f Kc   %8.2f Kc   %12.2f Kc   %12.2f Kc\n",
                den, mesic, ROK,
                stavNaZacatku,
+               mesicniVklad,
                mesicniUrok,
                danZUroku,
                zustatek);
@@ -137,9 +142,8 @@ int main() {
     konecnyStav = zustatek;
     rozdil = konecnyStav - pocatecniStav;
 
-    printf("\n----------------------------------------\n");
-    printf("Konecny stav uctu k 31.12.%d: %.2f\n", ROK, konecnyStav);
-    printf("Rozdil oproti pocatku roku: %.2f\n", rozdil);
+    printf("--------------------------------------------------------------------------\n");
+    printf("Stav na konci roku %d je %.2f Kc. Usetril jsi %.2f Kc.\n", ROK, konecnyStav, rozdil);
 
     return 0;
 }
