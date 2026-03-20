@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define SAZBA 50            // Kč za hodinu
+#define ZDARMA_HODIN 2      // počet hodin zdarma
+
+// převod hh:mm:ss na sekundy
+int casNaSekundy(int h, int m, int s) {
+    return h * 3600 + m * 60 + s;
+}
+
+// převod sekund na hodiny
+int sekundyNaHodiny(int sek) {
+    return sek / 3600;
+}
+
+// převod sekund na minuty
+int sekundyNaMinuty(int sek) {
+    return (sek % 3600) / 60;
+}
+
+// převod sekund na sekundy
+int sekundyNaSekundy(int sek) {
+    return sek % 60;
+}
+
+// výpočet ceny
+int vypocetCeny(int sekundy) {
+    int hodiny = sekundy / 3600;
+    if (sekundy % 3600 != 0) {
+        hodiny++; // zaokrouhlení nahoru
+    }
+    return hodiny * SAZBA;
+}
+
+int main() {
+    FILE *fr = fopen("casy.txt", "r");
+    FILE *fw = fopen("platby.txt", "w");
+
+    if (fr == NULL || fw == NULL) {
+        printf("Chyba pri otevirani souboru!\n");
+        return 1;
+    }
+
+    int h1, m1, s1, h2, m2, s2;
+    int poradi = 1;
+    int zapisPoradi = 1;
+
+    while (fscanf(fr, "%d %d %d %d %d %d", &h1, &m1, &s1, &h2, &m2, &s2) == 6) {
+        int vjezd = casNaSekundy(h1, m1, s1);
+        int vyjezd = casNaSekundy(h2, m2, s2);
+
+        int doba = vyjezd - vjezd;
+
+        int h = sekundyNaHodiny(doba);
+        int m = sekundyNaMinuty(doba);
+        int s = sekundyNaSekundy(doba);
+
+        int limit = ZDARMA_HODIN * 3600;
+        int cena = 0;
+
+        if (doba > limit) {
+            int nadLimit = doba - limit;
+            cena = vypocetCeny(nadLimit);
+        }
+        
+        printf("%d) Vjezd: %02d:%02d:%02d  Vyjezd: %02d:%02d:%02d  Parkovani: %02d:%02d:%02d  Platba: %d Kc\n",
+               poradi, h1, m1, s1, h2, m2, s2, h, m, s, cena);
+
+        // zápis do souboru pouze pokud přesáhne limit
+        if (doba > limit) {
+            int nadLimit = doba - limit;
+
+            int nh = sekundyNaHodiny(nadLimit);
+            int nm = sekundyNaMinuty(nadLimit);
+            int ns = sekundyNaSekundy(nadLimit);
+
+            int cenaSoubor = vypocetCeny(nadLimit);
+
+            fprintf(fw, "%d) Vjezd: %02d:%02d:%02d  Vyjezd: %02d:%02d:%02d  Parkovani: %02d:%02d:%02d  Nad limit: %02d:%02d:%02d  Platba: %d Kc\n",
+                    zapisPoradi, h1, m1, s1, h2, m2, s2, h, m, s, nh, nm, ns, cenaSoubor);
+
+            zapisPoradi++;
+        }
+
+        poradi++;
+    }
+
+    fclose(fr);
+    fclose(fw);
+
+    printf("Zpracovani dokonceno.\n");
+
+    return 0;
+}
