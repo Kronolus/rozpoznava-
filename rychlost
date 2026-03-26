@@ -1,0 +1,76 @@
+#include <stdio.h>
+#define INPUT "cisla.txt"
+#define OUTPUT "prevody.txt"
+
+double rychlost_ms(double metry, double sekundy)
+{
+    return metry / sekundy;
+}
+
+double rychlost_kmh(double ms) 
+{
+    return ms * 3.6;    
+}
+
+
+
+int main() {
+    FILE *fin, *fout;
+
+    fin = fopen(INPUT , "r");
+    if (fin == NULL)
+    {
+        printf("Chyba pri otevreni vstupního souboru %s\n" , INPUT);
+        return 1;
+    }
+    
+    fout = fopen(OUTPUT, "w");
+    if(fout == NULL) {
+        printf("Chyba pri otviraní vystupního souboru %s \n" , OUTPUT);
+        fclose(fin);
+        return 1;
+    }
+    int km, m, min, s;
+    int poradi = 1;
+    
+    double soucet_metru = 0;
+    int pocet = 0;
+    int zapsano = -1;
+
+    printf("poradi    draha                cas               rychlost\n");
+    printf("--------------------------------------------------------\n");
+    fprintf(fout, "poradi    draha     cas          rychlost\n");
+    fprintf(fout, "--------------------------------------------------------\n");
+
+    while (fscanf(fin, "%d %d %d %d" , &km , &m , &min , &s) == 4)
+    {
+        double metry = km * 1000 + m;
+        double sekundy = min * 60 + s;
+
+        double ms = rychlost_ms(metry, sekundy);
+        double kmh = rychlost_kmh(ms);
+
+        printf("%-2d. %2d km %3d m %2d minut %2d sekund %6.2f km/h\n" ,
+        poradi++, km, m, min, s , kmh);
+
+        if (kmh > 20) {
+            
+            fprintf(fout, "%2d. %6.0f metru %6.0f sekund %6.2f m/s\n" , 
+            zapsano + 1, metry ,sekundy, ms, zapsano++);
+            soucet_metru += metry;
+            pocet++;
+        
+        }
+
+        
+    }
+    if (pocet > 0)
+    {
+        double prumer = soucet_metru / pocet;
+        fprintf(fout , "Prumerna draha: %.2f m\n", prumer);
+    }   
+    if (fclose(fin) == EOF) {printf("Soubor %s nebyl spravne uzavren\n" , INPUT);}
+    if (fclose(fout) == EOF){printf("Soubor %s nebyl spravne uzavren\n" , OUTPUT);}
+
+    return 0;
+}
