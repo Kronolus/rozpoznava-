@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+
+double vypocetBMI(double hmotnost, double vyska_m) {
+    return hmotnost / (vyska_m * vyska_m);
+}
+
+int main() {
+    FILE *fr, *fw;
+
+    int vyska, vaha;
+    int pocet = 0;
+    int obezni = 0;
+    double soucet_vysek = 0;
+
+    fr = fopen("vysky_vahy.txt", "r");
+
+    if (fr == NULL) {
+        perror("Chyba pri otevirani souboru");
+        printf("Zkontroluj, ze soubor je ve stejne slozce jako program.\n");
+        return 1;
+    }
+
+    fw = fopen("obezita.txt", "w");
+    if (fw == NULL) {
+        perror("Chyba pri vytvareni souboru");
+        fclose(fr);
+        return 1;
+    }
+
+    printf("UDAJE ZE SOUBORU\n");
+    printf("poradi | vyska(cm) | vaha(kg) | BMI\n");
+
+    int poradi = 1;
+
+    while (fscanf(fr, "%d %d", &vyska, &vaha) == 2) {
+        double vyska_m = vyska / 100.0;
+        double bmi = vypocetBMI(vaha, vyska_m);
+
+        printf("%2d. | %3d | %3d | %.2f\n", poradi, vyska, vaha, bmi);
+
+        soucet_vysek += vyska;
+
+        if (bmi > 30) {
+            fprintf(fw, "%2d. | %3d | %3d | %.2f\n", poradi, vyska, vaha, bmi);
+            obezni++;
+        }
+
+        poradi++;
+        pocet++;
+    }
+
+    fclose(fr);
+    fclose(fw);
+
+    if (pocet > 0) {
+        double prumer = soucet_vysek / pocet;
+        printf("\nZe souboru bylo nacteno %d osob.\n", pocet);
+        printf("Prumerna vyska: %.2f cm\n", prumer);
+        printf("Do souboru obezita.txt bylo zapsano %d osob.\n", obezni);
+    } else {
+        printf("Soubor je prazdny nebo ve spatnem formatu.\n");
+    }
+
+    return 0;
+}
