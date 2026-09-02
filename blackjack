@@ -1,0 +1,494 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <ctype.h>
+
+#define DECKS 6
+#define MAX_CARDS (52 * DECKS)
+#define MAX_HAND_CARDS 32
+#define MAX_HANDS 4
+#define STARTING_BANKROLL 1000.0
+
+/* Casino-style rule switches */
+#define DEALER_HITS_SOFT_17 0      /* 0 = stands on soft 17 (S17), 1 = hits (H17) */
+#define BLACKJACK_PAYOUT 1.5       /* 3:2 */
+#define ALLOW_LATE_SURRENDER 1
+#define ALLOW_DOUBLE_AFTER_SPLIT 1
+#define ALLOW_RESPLIT_ACES 0
+#define SPLIT_ACES_ONE_CARD_ONLY 1
+#define MAX_SPLIT_HANDS 4
+
+typedef struct {
+    int rank; /* 1=Ace, 2..10, 11=J, 12=Q, 13=K */
+    int suit; /* 0..3 */
+} Card;
+
+typedef struct {
+    Card cards[MAX_HAND_CARDS];
+    int count;
+    double bet;
+    int finished;
+    int doubled;
+    int surrendered;
+    int from_split;
+    int split_aces;
+} Hand;
+
+typedef struct {
+    Card cards[MAX_CARDS];
+    int next;
+    int total;
+} Shoe;
+
+static const char *rank_name(int rank) {
+    static const char *names[] = {"?", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
+    return names[rank];
+}
+
+static const char *suit_name(int suit) {
+    static const char *suits[] = {"S", "H", "D", "C"};
+    return suits[suit];
+}
+
+static void print_card(Card c) {
+    printf("%s%s", rank_name(c.rank), suit_name(c.suit));
+}
+
+static void init_shoe(Shoe *shoe) {
+    int i = 0;
+    for (int d = 0; d < DECKS; ++d) {
+        for (int s = 0; s < 4; ++s) {
+            for (int r = 1; r <= 13; ++r) {
+                shoe->cards[i].rank = r;
+                shoe->cards[i].suit = s;
+                ++i;
+            }
+        }
+    }
+    shoe->total = i;
+    shoe->next = 0;
+}
+
+static void shuffle_shoe(Shoe *shoe) {
+    for (int i = shoe->total - 1; i > 0; --i) {
+        int j = rand() % (i + 1);
+        Card tmp = shoe->cards[i];
+        shoe->cards[i] = shoe->cards[j];
+        shoe->cards[j] = tmp;
+    }
+    shoe->next = 0;
+}
+
+static Card draw_card(Shoe *shoe) {
+    if (shoe->next >= shoe->total) {
+        init_shoe(shoe);
+        shuffle_shoe(shoe);
+    }
+    return shoe->cards[shoe->next++];
+}
+
+static void add_card(Hand *hand, Card c) {
+    if (hand->count < MAX_HAND_CARDS) {
+        hand->cards[hand->count++] = c;
+    }
+}
+
+static int card_value(Card c) {
+    if (c.rank == 1) return 11;
+    if (c.rank >= 10) return 10;
+    return c.rank;
+}
+
+static int hand_value(const Hand *hand, int *soft) {
+    int total = 0;
+    int aces = 0;
+    for (int i = 0; i < hand->count; ++i) {
+        total += card_value(hand->cards[i]);
+        if (hand->cards[i].rank == 1) ++aces;
+    }
+
+    while (total > 21 && aces > 0) {
+        total -= 10;
+        --aces;
+    }
+
+    if (soft) {
+        *soft = (aces > 0); /* at least one Ace is still counted as 11 */
+    }
+    return total;
+}
+
+static int is_blackjack(const Hand *hand) {
+    return hand->count == 2 && !hand->from_split && hand_value(hand, NULL) == 21;
+}
+
+static int is_bust(const Hand *hand) {
+    return hand_value(hand, NULL) > 21;
+}
+
+static int same_split_value(Card a, Card b) {
+    return card_value(a) == card_value(b);
+}
+
+static void print_hand(const Hand *hand, int hide_first) {
+    for (int i = 0; i < hand->count; ++i) {
+        if (hide_first && i == 0) {
+            printf("[??] ");
+        } else {
+            printf("[");
+            print_card(hand->cards[i]);
+            printf("] ");
+        }
+    }
+    if (!hide_first) {
+        int soft = 0;
+        int v = hand_value(hand, &soft);
+        printf("=> %d%s", v, (soft && v <= 21) ? " soft" : "");
+    }
+}
+
+static void clear_input(void) {
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {}
+}
+
+static double read_double(const char *prompt, double min, double max) {
+    double x;
+    for (;;) {
+        printf("%s", prompt);
+        if (scanf("%lf", &x) == 1 && x >= min && x <= max) {
+            clear_input();
+            return x;
+        }
+        clear_input();
+        printf("Invalid value. Enter %.2f to %.2f.\n", min, max);
+    }
+}
+
+static char read_choice(const char *prompt) {
+    char buf[64];
+    printf("%s", prompt);
+    if (!fgets(buf, sizeof(buf), stdin)) return 'q';
+    for (size_t i = 0; buf[i]; ++i) {
+        if (!isspace((unsigned char)buf[i])) return (char)tolower((unsigned char)buf[i]);
+    }
+    return '\0';
+}
+
+static void reset_hand(Hand *h, double bet) {
+    memset(h, 0, sizeof(*h));
+    h->bet = bet;
+}
+
+static int dealer_should_hit(const Hand *dealer) {
+    int soft = 0;
+    int v = hand_value(dealer, &soft);
+    if (v < 17) return 1;
+    if (v > 17) return 0;
+    return DEALER_HITS_SOFT_17 && soft;
+}
+
+static void show_table(const Hand *dealer, const Hand hands[], int hand_count, int current, int reveal_dealer) {
+    printf("\nDealer: ");
+    print_hand(dealer, !reveal_dealer);
+    printf("\n");
+    for (int i = 0; i < hand_count; ++i) {
+        printf("Hand %d%s, bet %.2f: ", i + 1, (i == current ? " *" : ""), hands[i].bet);
+        print_hand(&hands[i], 0);
+        if (hands[i].surrendered) printf(" [SURRENDERED]");
+        if (hands[i].doubled) printf(" [DOUBLED]");
+        printf("\n");
+    }
+    printf("\n");
+}
+
+static void split_hand(Hand hands[], int *hand_count, int idx, Shoe *shoe, double *bankroll) {
+    Hand *h = &hands[idx];
+    if (*hand_count >= MAX_SPLIT_HANDS) return;
+
+    /* Insert a new hand after current hand. */
+    for (int i = *hand_count; i > idx + 1; --i) {
+        hands[i] = hands[i - 1];
+    }
+
+    Hand new_hand;
+    reset_hand(&new_hand, h->bet);
+    new_hand.from_split = 1;
+    h->from_split = 1;
+
+    Card second = h->cards[1];
+    h->count = 1;
+    add_card(&new_hand, second);
+
+    if (h->cards[0].rank == 1 && second.rank == 1) {
+        h->split_aces = 1;
+        new_hand.split_aces = 1;
+    }
+
+    *bankroll -= h->bet;
+    ++(*hand_count);
+    hands[idx + 1] = new_hand;
+
+    add_card(h, draw_card(shoe));
+    add_card(&hands[idx + 1], draw_card(shoe));
+}
+
+static int can_split(const Hand *h, int hand_count, double bankroll) {
+    if (h->count != 2) return 0;
+    if (!same_split_value(h->cards[0], h->cards[1])) return 0;
+    if (hand_count >= MAX_SPLIT_HANDS) return 0;
+    if (bankroll + 1e-9 < h->bet) return 0;
+    if (h->split_aces && !ALLOW_RESPLIT_ACES) return 0;
+    return 1;
+}
+
+static int can_double(const Hand *h, double bankroll) {
+    if (h->count != 2) return 0;
+    if (bankroll + 1e-9 < h->bet) return 0;
+    if (h->from_split && !ALLOW_DOUBLE_AFTER_SPLIT) return 0;
+    if (h->split_aces && SPLIT_ACES_ONE_CARD_ONLY) return 0;
+    return 1;
+}
+
+static int can_surrender(const Hand *h) {
+    if (!ALLOW_LATE_SURRENDER) return 0;
+    if (h->count != 2 || h->from_split) return 0;
+    return 1;
+}
+
+static void play_player_hands(Hand hands[], int *hand_count, Hand *dealer, Shoe *shoe, double *bankroll) {
+    for (int i = 0; i < *hand_count; ++i) {
+        Hand *h = &hands[i];
+
+        for (;;) {
+            int value = hand_value(h, NULL);
+            if (value >= 21 || h->finished || h->surrendered) {
+                h->finished = 1;
+                break;
+            }
+
+            /* Split aces normally receive exactly one additional card. */
+            if (h->split_aces && SPLIT_ACES_ONE_CARD_ONLY) {
+                /* Exception: allow resplit if another Ace appears and rules allow it. */
+                if (!(ALLOW_RESPLIT_ACES && can_split(h, *hand_count, *bankroll))) {
+                    h->finished = 1;
+                    break;
+                }
+            }
+
+            show_table(dealer, hands, *hand_count, i, 0);
+            printf("Bankroll: %.2f\n", *bankroll);
+            printf("Actions: [h]it [s]tand");
+            if (can_double(h, *bankroll)) printf(" [d]ouble");
+            if (can_split(h, *hand_count, *bankroll)) printf(" s[p]lit");
+            if (can_surrender(h)) printf(" su[r]render");
+            printf("\n");
+
+            char c = read_choice("> ");
+            if (c == 'h') {
+                add_card(h, draw_card(shoe));
+                if (is_bust(h) || hand_value(h, NULL) == 21) h->finished = 1;
+            } else if (c == 's') {
+                h->finished = 1;
+            } else if (c == 'd' && can_double(h, *bankroll)) {
+                *bankroll -= h->bet;
+                h->bet *= 2.0;
+                h->doubled = 1;
+                add_card(h, draw_card(shoe));
+                h->finished = 1;
+            } else if (c == 'p' && can_split(h, *hand_count, *bankroll)) {
+                split_hand(hands, hand_count, i, shoe, bankroll);
+                h = &hands[i];
+            } else if (c == 'r' && can_surrender(h)) {
+                h->surrendered = 1;
+                h->finished = 1;
+            } else {
+                printf("That action is not available.\n");
+            }
+        }
+    }
+}
+
+static double settle_hand(const Hand *player, const Hand *dealer) {
+    int pv = hand_value(player, NULL);
+    int dv = hand_value(dealer, NULL);
+
+    if (player->surrendered) return player->bet * 0.5;
+    if (pv > 21) return 0.0;
+
+    if (is_blackjack(player)) {
+        if (is_blackjack(dealer)) return player->bet; /* push */
+        return player->bet * (1.0 + BLACKJACK_PAYOUT);
+    }
+
+    if (is_blackjack(dealer)) return 0.0;
+    if (dv > 21) return player->bet * 2.0;
+    if (pv > dv) return player->bet * 2.0;
+    if (pv == dv) return player->bet;
+    return 0.0;
+}
+
+static int dealer_upcard_is_ten(Card c) {
+    return card_value(c) == 10;
+}
+
+static void print_rules(void) {
+    printf("\n=== BLACKJACK RULES ===\n");
+    printf("%d decks, blackjack pays 3:2.\n", DECKS);
+    printf("Dealer %s soft 17.\n", DEALER_HITS_SOFT_17 ? "hits" : "stands on");
+    printf("Dealer peeks for blackjack with Ace or ten-value upcard.\n");
+    printf("Insurance is offered against dealer Ace and pays 2:1.\n");
+    printf("Late surrender: %s.\n", ALLOW_LATE_SURRENDER ? "yes" : "no");
+    printf("Double after split: %s.\n", ALLOW_DOUBLE_AFTER_SPLIT ? "yes" : "no");
+    printf("Maximum hands after splitting: %d.\n", MAX_SPLIT_HANDS);
+    printf("Split aces: %s. Resplit aces: %s.\n",
+           SPLIT_ACES_ONE_CARD_ONLY ? "one card per Ace" : "normal play",
+           ALLOW_RESPLIT_ACES ? "yes" : "no");
+    printf("Ten-value cards may be split by equal value, e.g. K + Q.\n");
+    printf("A 21 made after a split is not a natural blackjack.\n\n");
+}
+
+int main(void) {
+    srand((unsigned)time(NULL));
+
+    Shoe shoe;
+    init_shoe(&shoe);
+    shuffle_shoe(&shoe);
+
+    double bankroll = STARTING_BANKROLL;
+    print_rules();
+
+    for (;;) {
+        if (bankroll < 1.0) {
+            printf("You are out of money. Game over.\n");
+            break;
+        }
+
+        /* Reshuffle around 25%% remaining, roughly a 75%% penetration. */
+        if (shoe.next > (shoe.total * 3) / 4) {
+            printf("\n--- Shuffling the shoe ---\n");
+            init_shoe(&shoe);
+            shuffle_shoe(&shoe);
+        }
+
+        printf("\nBankroll: %.2f\n", bankroll);
+        char q = read_choice("Press Enter to play, or q to quit: ");
+        if (q == 'q') break;
+
+        double bet = read_double("Bet: ", 1.0, bankroll);
+        bankroll -= bet;
+
+        Hand dealer;
+        Hand hands[MAX_HANDS];
+        reset_hand(&dealer, 0.0);
+        reset_hand(&hands[0], bet);
+        int hand_count = 1;
+
+        add_card(&hands[0], draw_card(&shoe));
+        add_card(&dealer, draw_card(&shoe)); /* hole card */
+        add_card(&hands[0], draw_card(&shoe));
+        add_card(&dealer, draw_card(&shoe)); /* upcard */
+
+        show_table(&dealer, hands, hand_count, 0, 0);
+
+        double insurance_bet = 0.0;
+        int insurance_taken = 0;
+
+        if (dealer.cards[1].rank == 1 && bankroll >= bet * 0.5) {
+            char ins = read_choice("Dealer shows Ace. Take insurance? [y/n]: ");
+            if (ins == 'y') {
+                insurance_bet = bet * 0.5;
+                bankroll -= insurance_bet;
+                insurance_taken = 1;
+            }
+        }
+
+        int dealer_peeks = (dealer.cards[1].rank == 1 || dealer_upcard_is_ten(dealer.cards[1]));
+        int dealer_bj = is_blackjack(&dealer);
+
+        if (dealer_peeks && dealer_bj) {
+            printf("\nDealer has blackjack.\n");
+            show_table(&dealer, hands, hand_count, -1, 1);
+
+            if (insurance_taken) {
+                double insurance_return = insurance_bet * 3.0; /* stake + 2:1 winnings */
+                bankroll += insurance_return;
+                printf("Insurance wins. Returned: %.2f\n", insurance_return);
+            }
+
+            double ret = settle_hand(&hands[0], &dealer);
+            bankroll += ret;
+            if (ret == bet) printf("Main bet pushes.\n");
+            else printf("Main bet loses.\n");
+            continue;
+        }
+
+        if (insurance_taken) {
+            printf("Dealer does not have blackjack. Insurance loses.\n");
+        }
+
+        if (is_blackjack(&hands[0])) {
+            printf("\nBlackjack!\n");
+            show_table(&dealer, hands, hand_count, -1, 1);
+            double ret = settle_hand(&hands[0], &dealer);
+            bankroll += ret;
+            printf("Returned: %.2f\n", ret);
+            continue;
+        }
+
+        play_player_hands(hands, &hand_count, &dealer, &shoe, &bankroll);
+
+        int any_live = 0;
+        for (int i = 0; i < hand_count; ++i) {
+            if (!hands[i].surrendered && !is_bust(&hands[i])) {
+                any_live = 1;
+                break;
+            }
+        }
+
+        if (any_live) {
+            printf("\nDealer reveals: ");
+            print_hand(&dealer, 0);
+            printf("\n");
+
+            while (dealer_should_hit(&dealer)) {
+                Card c = draw_card(&shoe);
+                add_card(&dealer, c);
+                printf("Dealer draws [");
+                print_card(c);
+                printf("] => ");
+                print_hand(&dealer, 0);
+                printf("\n");
+            }
+        }
+
+        printf("\n=== RESULTS ===\n");
+        show_table(&dealer, hands, hand_count, -1, 1);
+
+        for (int i = 0; i < hand_count; ++i) {
+            double ret = settle_hand(&hands[i], &dealer);
+            bankroll += ret;
+
+            printf("Hand %d: ", i + 1);
+            if (hands[i].surrendered) {
+                printf("surrender, returned %.2f\n", ret);
+            } else if (is_bust(&hands[i])) {
+                printf("bust, lost %.2f\n", hands[i].bet);
+            } else if (ret == 0.0) {
+                printf("loss, lost %.2f\n", hands[i].bet);
+            } else if (ret == hands[i].bet) {
+                printf("push, returned %.2f\n", ret);
+            } else if (is_blackjack(&hands[i])) {
+                printf("blackjack, returned %.2f\n", ret);
+            } else {
+                printf("win, returned %.2f\n", ret);
+            }
+        }
+
+        printf("Bankroll now: %.2f\n", bankroll);
+    }
+
+    printf("Final bankroll: %.2f\n", bankroll);
+    return 0;
+}
