@@ -1,0 +1,52 @@
+#include <stdio.h>
+
+int main() {
+    int a, b;
+    int x, y;
+    int nsd, nsn;
+
+    FILE *vstup;
+    FILE *vystup;
+
+    vstup = fopen("vstup.txt", "r");
+
+    if (vstup == NULL) {
+        printf("Nepodarilo se otevrit soubor vstup.txt\n");
+        return 1;
+    }
+
+    fscanf(vstup, "%d %d", &a, &b);
+    fclose(vstup);
+
+    x = a;
+    y = b;
+
+    // Eukleiduv algoritmus pro NSD
+    while (y != 0) {
+        int zbytek = x % y;
+        x = y;
+        y = zbytek;
+    }
+
+    nsd = x;
+
+    // Vypocet NSN
+    nsn = (a * b) / nsd;
+
+    vystup = fopen("vystup.txt", "w");
+
+    if (vystup == NULL) {
+        printf("Nepodarilo se otevrit soubor vystup.txt\n");
+        return 1;
+    }
+
+    fprintf(vystup, "Cisla: %d a %d\n", a, b);
+    fprintf(vystup, "NSD: %d\n", nsd);
+    fprintf(vystup, "NSN: %d\n", nsn);
+
+    fclose(vystup);
+
+    printf("Vypocet byl ulozen do souboru vystup.txt\n");
+
+    return 0;
+}
